@@ -32,7 +32,6 @@ export const PosLayout: React.FC<PosLayoutProps> = ({ currentUser, onLogout, onO
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [cart, setCart] = useState<CartItem[]>([]);
   
-  // State Order Type & Customer Name
   const [orderType, setOrderType] = useState<'DINE_IN' | 'TAKE_AWAY'>('DINE_IN');
   const [customerName, setCustomerName] = useState<string>('');
   
@@ -41,7 +40,6 @@ export const PosLayout: React.FC<PosLayoutProps> = ({ currentUser, onLogout, onO
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastTransaction, setLastTransaction] = useState<any>(null);
   
-  // State drawer keranjang mobile
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
 
   useEffect(() => {
@@ -156,209 +154,12 @@ export const PosLayout: React.FC<PosLayoutProps> = ({ currentUser, onLogout, onO
     }
   };
 
-  // Filter Menu Kategori & Search
   const allMenus = categories.flatMap((cat) => cat.menus || []);
   const filteredMenus = allMenus.filter((menu) => {
     const matchesCategory = selectedCategory === 'all' || menu.categoryId === selectedCategory;
     const matchesSearch = menu.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
-
-  // Render Panel Keranjang
-  const RenderCartContent = () => (
-    <div className="flex flex-col justify-between h-full">
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2 text-sky-600">
-            <ShoppingBag size={22} />
-            <h2 className="text-xl font-bold text-slate-900">Keranjang Pesanan</h2>
-          </div>
-          <button
-            onClick={() => setIsMobileCartOpen(false)}
-            className="lg:hidden text-slate-400 hover:text-slate-700 p-1"
-          >
-            <X size={24} />
-          </button>
-        </div>
-
-        {/* Form Tipe Pesanan & Nama Pelanggan */}
-        <div className="space-y-3 mb-4 p-3 bg-slate-50 border border-slate-200 rounded-xl">
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => setOrderType('DINE_IN')}
-              className={`py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition ${
-                orderType === 'DINE_IN'
-                  ? 'bg-sky-500 text-white shadow-sm'
-                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              <Utensils size={14} /> Dine In
-            </button>
-            <button
-              type="button"
-              onClick={() => setOrderType('TAKE_AWAY')}
-              className={`py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition ${
-                orderType === 'TAKE_AWAY'
-                  ? 'bg-sky-500 text-white shadow-sm'
-                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              <TakeAwayIcon size={14} /> Take Away
-            </button>
-          </div>
-
-          <div className="relative">
-            <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Nama Pelanggan (Opsional)"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-sky-500 shadow-sm"
-            />
-          </div>
-        </div>
-
-        {/* List Pesanan */}
-        <div className="space-y-2.5 max-h-[25vh] lg:max-h-[32vh] overflow-y-auto pr-1">
-          {cart.length === 0 ? (
-            <p className="text-slate-400 text-center py-6 text-sm font-medium">
-              Keranjang masih kosong
-            </p>
-          ) : (
-            cart.map((item) => (
-              <div
-                key={item.id}
-                className="bg-slate-50 rounded-xl p-3 flex justify-between items-center border border-slate-200 shadow-sm"
-              >
-                <div>
-                  <h4 className="font-bold text-sm text-slate-800">{item.name}</h4>
-                  <p className="text-xs font-bold text-sky-600 mt-0.5">
-                    Rp {(Number(item.price) * item.quantity).toLocaleString('id-ID')}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => updateQuantity(item.id, -1)}
-                    className="w-7 h-7 rounded-lg bg-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-300 active:scale-95 transition"
-                  >
-                    <Minus size={14} />
-                  </button>
-                  <span className="text-sm font-bold w-5 text-center text-slate-800">
-                    {item.quantity}
-                  </span>
-                  <button
-                    onClick={() => updateQuantity(item.id, 1)}
-                    className="w-7 h-7 rounded-lg bg-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-300 active:scale-95 transition"
-                  >
-                    <Plus size={14} />
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* Form Pembayaran */}
-      <div className="mt-4 pt-3 border-t border-slate-200">
-        <div className="flex justify-between items-center mb-4">
-          <span className="text-slate-600 font-bold">Total Tagihan</span>
-          <span className="text-2xl font-black text-sky-600">
-            Rp {totalAmount.toLocaleString('id-ID')}
-          </span>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 mb-4">
-          <button
-            onClick={() => setPaymentMethod('CASH')}
-            className={`py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition ${
-              paymentMethod === 'CASH'
-                ? 'bg-sky-50 border-sky-500 text-sky-600 shadow-sm'
-                : 'border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100'
-            }`}
-          >
-            <Banknote size={16} /> CASH
-          </button>
-          <button
-            onClick={() => setPaymentMethod('QRIS')}
-            className={`py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition ${
-              paymentMethod === 'QRIS'
-                ? 'bg-sky-50 border-sky-500 text-sky-600 shadow-sm'
-                : 'border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100'
-            }`}
-          >
-            <CreditCard size={16} /> QRIS
-          </button>
-        </div>
-
-        {paymentMethod === 'CASH' && (
-          <div className="mb-4">
-            <label className="block text-xs text-slate-600 font-bold mb-1.5">
-              Nominal Uang Tunai (Rp)
-            </label>
-            
-            <input
-              type="text"
-              placeholder="50.000"
-              value={cashPaid ? formatNumberWithDots(cashPaid) : ''}
-              onChange={handleCashInputChange}
-              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-slate-900 font-bold placeholder-slate-400 focus:outline-none focus:border-sky-500 text-sm tracking-wide shadow-sm"
-            />
-
-            <div className="grid grid-cols-3 gap-1.5 mt-2">
-              <button
-                type="button"
-                onClick={() => setCashPaid(totalAmount.toString())}
-                className="py-1 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-sky-600 font-bold text-[11px] border border-slate-200 transition active:scale-95"
-              >
-                Uang Pas
-              </button>
-              <button
-                type="button"
-                onClick={() => setCashPaid('50000')}
-                className="py-1 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] border border-slate-200 transition active:scale-95"
-              >
-                50.000
-              </button>
-              <button
-                type="button"
-                onClick={() => setCashPaid('100000')}
-                className="py-1 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] border border-slate-200 transition active:scale-95"
-              >
-                100.000
-              </button>
-            </div>
-
-            {numericCashPaid > 0 && (
-              <p
-                className={`text-xs mt-2 font-bold ${
-                  change >= 0 ? 'text-emerald-600' : 'text-red-500'
-                }`}
-              >
-                {change >= 0
-                  ? `Kembalian: Rp ${change.toLocaleString('id-ID')}`
-                  : `Kurang: Rp ${Math.abs(change).toLocaleString('id-ID')}`}
-              </p>
-            )}
-          </div>
-        )}
-
-        <button
-          disabled={
-            cart.length === 0 ||
-            isProcessing ||
-            (paymentMethod === 'CASH' && numericCashPaid < totalAmount)
-          }
-          onClick={handleCheckout}
-          className="w-full bg-sky-500 hover:bg-sky-600 disabled:opacity-50 text-white py-3.5 rounded-xl font-extrabold text-sm transition active:scale-95 shadow-md shadow-sky-500/20"
-        >
-          {isProcessing ? 'Memproses Transaksi...' : 'PROSES BAYAR'}
-        </button>
-      </div>
-    </div>
-  );
 
   return (
     <div className="relative flex flex-col lg:flex-row h-screen bg-slate-100 text-slate-800 overflow-hidden font-sans">
@@ -469,10 +270,194 @@ export const PosLayout: React.FC<PosLayoutProps> = ({ currentUser, onLogout, onO
         )}
       </div>
 
+      {/* PANEL KERANJANG DESKTOP */}
       <div className="hidden lg:flex lg:w-96 bg-white border-l border-slate-200 p-6 flex-col justify-between shadow-lg">
-        <RenderCartContent />
+        <div className="flex flex-col justify-between h-full">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2 text-sky-600">
+                <ShoppingBag size={22} />
+                <h2 className="text-xl font-bold text-slate-900">Keranjang Pesanan</h2>
+              </div>
+            </div>
+
+            <div className="space-y-3 mb-4 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setOrderType('DINE_IN')}
+                  className={`py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+                    orderType === 'DINE_IN'
+                      ? 'bg-sky-500 text-white shadow-sm'
+                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <Utensils size={14} /> Dine In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOrderType('TAKE_AWAY')}
+                  className={`py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+                    orderType === 'TAKE_AWAY'
+                      ? 'bg-sky-500 text-white shadow-sm'
+                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <TakeAwayIcon size={14} /> Take Away
+                </button>
+              </div>
+
+              <div className="relative">
+                <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Nama Pelanggan (Opsional)"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-sky-500 shadow-sm"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2.5 max-h-[32vh] overflow-y-auto pr-1">
+              {cart.length === 0 ? (
+                <p className="text-slate-400 text-center py-6 text-sm font-medium">
+                  Keranjang masih kosong
+                </p>
+              ) : (
+                cart.map((item) => (
+                  <div
+                    key={item.id}
+                    className="bg-slate-50 rounded-xl p-3 flex justify-between items-center border border-slate-200 shadow-sm"
+                  >
+                    <div>
+                      <h4 className="font-bold text-sm text-slate-800">{item.name}</h4>
+                      <p className="text-xs font-bold text-sky-600 mt-0.5">
+                        Rp {(Number(item.price) * item.quantity).toLocaleString('id-ID')}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => updateQuantity(item.id, -1)}
+                        className="w-7 h-7 rounded-lg bg-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-300 active:scale-95 transition"
+                      >
+                        <Minus size={14} />
+                      </button>
+                      <span className="text-sm font-bold w-5 text-center text-slate-800">
+                        {item.quantity}
+                      </span>
+                      <button
+                        onClick={() => updateQuantity(item.id, 1)}
+                        className="w-7 h-7 rounded-lg bg-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-300 active:scale-95 transition"
+                      >
+                        <Plus size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-slate-200">
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-slate-600 font-bold">Total Tagihan</span>
+              <span className="text-2xl font-black text-sky-600">
+                Rp {totalAmount.toLocaleString('id-ID')}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              <button
+                onClick={() => setPaymentMethod('CASH')}
+                className={`py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition ${
+                  paymentMethod === 'CASH'
+                    ? 'bg-sky-50 border-sky-500 text-sky-600 shadow-sm'
+                    : 'border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100'
+                }`}
+              >
+                <Banknote size={16} /> CASH
+              </button>
+              <button
+                onClick={() => setPaymentMethod('QRIS')}
+                className={`py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition ${
+                  paymentMethod === 'QRIS'
+                    ? 'bg-sky-50 border-sky-500 text-sky-600 shadow-sm'
+                    : 'border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100'
+                }`}
+              >
+                <CreditCard size={16} /> QRIS
+              </button>
+            </div>
+
+            {paymentMethod === 'CASH' && (
+              <div className="mb-4">
+                <label className="block text-xs text-slate-600 font-bold mb-1.5">
+                  Nominal Uang Tunai (Rp)
+                </label>
+                
+                <input
+                  type="text"
+                  placeholder="50.000"
+                  value={cashPaid ? formatNumberWithDots(cashPaid) : ''}
+                  onChange={handleCashInputChange}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-slate-900 font-bold placeholder-slate-400 focus:outline-none focus:border-sky-500 text-sm tracking-wide shadow-sm"
+                />
+
+                <div className="grid grid-cols-3 gap-1.5 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setCashPaid(totalAmount.toString())}
+                    className="py-1 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-sky-600 font-bold text-[11px] border border-slate-200 transition active:scale-95"
+                  >
+                    Uang Pas
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCashPaid('50000')}
+                    className="py-1 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] border border-slate-200 transition active:scale-95"
+                  >
+                    50.000
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCashPaid('100000')}
+                    className="py-1 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] border border-slate-200 transition active:scale-95"
+                  >
+                    100.000
+                  </button>
+                </div>
+
+                {numericCashPaid > 0 && (
+                  <p
+                    className={`text-xs mt-2 font-bold ${
+                      change >= 0 ? 'text-emerald-600' : 'text-red-500'
+                    }`}
+                  >
+                    {change >= 0
+                      ? `Kembalian: Rp ${change.toLocaleString('id-ID')}`
+                      : `Kurang: Rp ${Math.abs(change).toLocaleString('id-ID')}`}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <button
+              disabled={
+                cart.length === 0 ||
+                isProcessing ||
+                (paymentMethod === 'CASH' && numericCashPaid < totalAmount)
+              }
+              onClick={handleCheckout}
+              className="w-full bg-sky-500 hover:bg-sky-600 disabled:opacity-50 text-white py-3.5 rounded-xl font-extrabold text-sm transition active:scale-95 shadow-md shadow-sky-500/20"
+            >
+              {isProcessing ? 'Memproses Transaksi...' : 'PROSES BAYAR'}
+            </button>
+          </div>
+        </div>
       </div>
 
+      {/* FLOATING BUTTON KERANJANG MOBILE */}
       <div className="lg:hidden fixed bottom-6 right-6 z-40">
         <button
           onClick={() => setIsMobileCartOpen(true)}
@@ -487,14 +472,32 @@ export const PosLayout: React.FC<PosLayoutProps> = ({ currentUser, onLogout, onO
         </button>
       </div>
 
+      {/* DRAWER KERANJANG MOBILE */}
       {isMobileCartOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end">
           <div
             onClick={() => setIsMobileCartOpen(false)}
             className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm"
           />
-          <div className="relative bg-white border-t border-slate-200 rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto shadow-2xl z-10 animate-in slide-in-from-bottom duration-200">
-            <RenderCartContent />
+          <div className="relative bg-white border-t border-slate-200 rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto shadow-2xl z-10">
+            {/* Konten Mobile Drawer sama persis */}
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-slate-900">Keranjang Pesanan</h2>
+              <button onClick={() => setIsMobileCartOpen(false)} className="text-slate-400 p-1">
+                <X size={24} />
+              </button>
+            </div>
+            {/* Ringkasan cart & checkout untuk mobile */}
+            <div className="space-y-3">
+              <p className="text-xs text-slate-500">{cart.length} item di keranjang</p>
+              <button
+                disabled={cart.length === 0 || isProcessing}
+                onClick={handleCheckout}
+                className="w-full bg-sky-500 text-white py-3 rounded-xl font-bold text-sm"
+              >
+                {isProcessing ? 'Memproses...' : `Proses Bayar (Rp ${totalAmount.toLocaleString('id-ID')})`}
+              </button>
+            </div>
           </div>
         </div>
       )}

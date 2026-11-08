@@ -89,6 +89,7 @@ model Expense {
   title       String
   category    String
   amount      Decimal  @db.Decimal(12, 2)
+  notes       String?
   isAiScanned Boolean  @default(false)
   receiptUrl  String?
   date        DateTime @default(now())
