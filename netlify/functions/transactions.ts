@@ -1,5 +1,5 @@
 import { Handler } from '@netlify/functions';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, PaymentMethod, OrderStatus } from '@prisma/client';
 
 declare global {
   var prisma: PrismaClient | undefined;
@@ -12,7 +12,6 @@ export const handler: Handler = async (event) => {
   const method = event.httpMethod;
 
   try {
-    // GET: Fetch Transactions
     if (method === 'GET') {
       const transactions = await prisma.transaction.findMany({
         include: {
@@ -30,10 +29,9 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // POST: Create New Transaction
     if (method === 'POST') {
       const body = JSON.parse(event.body || '{}');
-      const { orderType, paymentMethod, customerName, items, totalAmount, cashPaid, changeAmount } = body;
+      const { paymentMethod, customerName, items, totalAmount, cashPaid, changeAmount } = body;
 
       if (!items || !items.length) {
         return {
@@ -43,20 +41,23 @@ export const handler: Handler = async (event) => {
         };
       }
 
+      // Mapping PaymentMethod ke Enum Prisma (CASH / QRIS)
+      const validPaymentMethod = paymentMethod === 'QRIS' ? PaymentMethod.QRIS : PaymentMethod.CASH;
+
       const transaction = await prisma.transaction.create({
         data: {
-          orderType: orderType || 'DINE_IN',
-          paymentMethod: paymentMethod || 'CASH',
-          customerName: customerName || null,
+          customerName: customerName || '-',
+          paymentMethod: validPaymentMethod,
           totalAmount: parseFloat(totalAmount),
-          cashPaid: cashPaid ? parseFloat(cashPaid) : null,
+          cashAmount: cashPaid ? parseFloat(cashPaid) : null,
           changeAmount: changeAmount ? parseFloat(changeAmount) : null,
+          status: OrderStatus.COMPLETED,
           items: {
             create: items.map((item: any) => ({
               menuId: item.menuId || item.id,
               quantity: parseInt(item.quantity),
-              price: parseFloat(item.price),
-              hpp: parseFloat(item.hpp || 0),
+              priceAtSale: parseFloat(item.price),
+              hppAtSale: parseFloat(item.hpp || 0),
             })),
           },
         },

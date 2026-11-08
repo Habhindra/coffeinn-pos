@@ -4,7 +4,7 @@
 
 [functions]
   node_bundler = "esbuild"
-  included_files = ["node_modules/.prisma/client/*"]
+  included_files = ["node_modules/.prisma/client/*", "node_modules/@prisma/client/*"]
 
 [build.environment]
   SECRETS_SCAN_OMIT_KEYS = "DIRECT_URL, DATABASE_URL"

@@ -1,10 +1,12 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum Role {
@@ -37,16 +39,16 @@ model Category {
 }
 
 model Menu {
-  id          String             @id @default(uuid())
-  name        String
-  categoryId  String
-  category    Category           @relation(fields: [categoryId], references: [id])
-  price       Decimal            @db.Decimal(12, 2)
-  hpp         Decimal            @db.Decimal(12, 2)
-  imageUrl    String?
-  recipes     RecipeIngredient[]
-  items       TransactionItem[]
-  createdAt   DateTime           @default(now())
+  id         String             @id @default(uuid())
+  name       String
+  categoryId String
+  category   Category           @relation(fields: [categoryId], references: [id])
+  price      Decimal            @db.Decimal(12, 2)
+  hpp        Decimal            @db.Decimal(12, 2)
+  imageUrl   String?
+  recipes    RecipeIngredient[]
+  items      TransactionItem[]
+  createdAt  DateTime           @default(now())
 }
 
 model RecipeIngredient {
@@ -60,15 +62,15 @@ model RecipeIngredient {
 }
 
 model Transaction {
-  id            String          @id @default(uuid())
-  customerName  String
-  totalAmount   Decimal         @db.Decimal(12, 2)
+  id            String            @id @default(uuid())
+  customerName  String?
+  totalAmount   Decimal           @db.Decimal(12, 2)
   paymentMethod PaymentMethod
-  cashAmount    Decimal?        @db.Decimal(12, 2)
-  changeAmount  Decimal?        @db.Decimal(12, 2)
-  status        OrderStatus     @default(PENDING)
+  cashAmount    Decimal?          @db.Decimal(12, 2)
+  changeAmount  Decimal?          @db.Decimal(12, 2)
+  status        OrderStatus       @default(COMPLETED)
   items         TransactionItem[]
-  createdAt     DateTime        @default(now())
+  createdAt     DateTime          @default(now())
 }
 
 model TransactionItem {
