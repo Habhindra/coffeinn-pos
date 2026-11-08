@@ -42,20 +42,18 @@ export const PosLayout: React.FC<PosLayoutProps> = ({ currentUser, onLogout, onO
   const [lastTransaction, setLastTransaction] = useState<any>(null);
   
   // State drawer keranjang mobile
+  const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
+
   useEffect(() => {
     fetchMenuData();
   }, []);
 
   const fetchMenuData = async () => {
     try {
-      // PERBAIKAN: Ubah endpoint ke menu-management
       const res = await fetch('/.netlify/functions/menu-management');
       const data = await res.json();
       if (res.ok) {
-        // Backend menu-management mengembalikan { menus: [...], categories: [...] }
-        // Kita ubah formatnya agar sesuai dengan state categories & menus di komponen ini:
         if (data.categories && data.menus) {
-          // Gabungkan menus ke dalam masing-masing category agar struktur categories.flatMap berfungsi
           const categoriesWithMenus = data.categories.map((cat: any) => ({
             ...cat,
             menus: data.menus.filter((m: any) => m.categoryId === cat.id),
@@ -69,9 +67,6 @@ export const PosLayout: React.FC<PosLayoutProps> = ({ currentUser, onLogout, onO
       console.error('Gagal mengambil data menu:', err);
     }
   };
-    } catch (err) {
-      console.error('Gagal mengambil data menu:', err);
-    }
 
   const formatNumberWithDots = (val: string | number) => {
     const numStr = val.toString().replace(/\D/g, '');
@@ -131,11 +126,16 @@ export const PosLayout: React.FC<PosLayoutProps> = ({ currentUser, onLogout, onO
           userId: currentUser.id,
           customerName: customerName.trim() || 'Pelanggan',
           orderType,
-          items: cart,
+          items: cart.map(item => ({
+            menuId: item.id,
+            quantity: item.quantity,
+            price: item.price,
+            hpp: item.hpp || 0
+          })),
           paymentMethod,
           totalAmount,
           cashPaid: paymentMethod === 'CASH' ? numericCashPaid : totalAmount,
-          change: paymentMethod === 'CASH' ? change : 0,
+          changeAmount: paymentMethod === 'CASH' ? change : 0,
         }),
       });
 
@@ -157,7 +157,7 @@ export const PosLayout: React.FC<PosLayoutProps> = ({ currentUser, onLogout, onO
   };
 
   // Filter Menu Kategori & Search
-  const allMenus = categories.flatMap((cat) => cat.menus);
+  const allMenus = categories.flatMap((cat) => cat.menus || []);
   const filteredMenus = allMenus.filter((menu) => {
     const matchesCategory = selectedCategory === 'all' || menu.categoryId === selectedCategory;
     const matchesSearch = menu.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -183,7 +183,6 @@ export const PosLayout: React.FC<PosLayoutProps> = ({ currentUser, onLogout, onO
 
         {/* Form Tipe Pesanan & Nama Pelanggan */}
         <div className="space-y-3 mb-4 p-3 bg-slate-50 border border-slate-200 rounded-xl">
-          {/* Opsi Dine In / Take Away */}
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
@@ -209,7 +208,6 @@ export const PosLayout: React.FC<PosLayoutProps> = ({ currentUser, onLogout, onO
             </button>
           </div>
 
-          {/* Input Nama Pelanggan */}
           <div className="relative">
             <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
@@ -364,9 +362,7 @@ export const PosLayout: React.FC<PosLayoutProps> = ({ currentUser, onLogout, onO
 
   return (
     <div className="relative flex flex-col lg:flex-row h-screen bg-slate-100 text-slate-800 overflow-hidden font-sans">
-      {/* Panel Kiri: Header, Search, Kategori, & Grid Menu */}
       <div className="flex-1 flex flex-col p-4 sm:p-6 overflow-y-auto pb-24 lg:pb-6">
-        {/* Header Shift, Dashboard Owner & Logout */}
         <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-200">
           <div>
             <h1 className="text-2xl font-black text-sky-600 tracking-wide">Coffeinn POS</h1>
@@ -376,7 +372,6 @@ export const PosLayout: React.FC<PosLayoutProps> = ({ currentUser, onLogout, onO
           </div>
           
           <div className="flex items-center gap-2">
-            {/* Tombol khusus jika login sebagai OWNER */}
             {currentUser.role === 'OWNER' && onOpenDashboard && (
               <button
                 onClick={onOpenDashboard}
@@ -397,7 +392,6 @@ export const PosLayout: React.FC<PosLayoutProps> = ({ currentUser, onLogout, onO
           </div>
         </div>
 
-        {/* Search Bar */}
         <div className="mb-4">
           <div className="relative w-full">
             <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -419,7 +413,6 @@ export const PosLayout: React.FC<PosLayoutProps> = ({ currentUser, onLogout, onO
           </div>
         </div>
 
-        {/* Tab Kategori Menu */}
         <div className="flex gap-2 overflow-x-auto pb-2 mb-6">
           <button
             onClick={() => setSelectedCategory('all')}
@@ -446,7 +439,6 @@ export const PosLayout: React.FC<PosLayoutProps> = ({ currentUser, onLogout, onO
           ))}
         </div>
 
-        {/* Grid Menu Kopi */}
         {filteredMenus.length === 0 ? (
           <div className="text-center py-16 text-slate-500 bg-white border border-slate-200 rounded-2xl shadow-sm">
             <p className="text-base font-semibold">Menu "{searchQuery}" tidak ditemukan</p>
@@ -477,12 +469,10 @@ export const PosLayout: React.FC<PosLayoutProps> = ({ currentUser, onLogout, onO
         )}
       </div>
 
-      {/* Panel Kanan Desktop */}
       <div className="hidden lg:flex lg:w-96 bg-white border-l border-slate-200 p-6 flex-col justify-between shadow-lg">
         <RenderCartContent />
       </div>
 
-      {/* FLOATING BUTTON KERANJANG UNTUK MOBILE */}
       <div className="lg:hidden fixed bottom-6 right-6 z-40">
         <button
           onClick={() => setIsMobileCartOpen(true)}
@@ -497,7 +487,6 @@ export const PosLayout: React.FC<PosLayoutProps> = ({ currentUser, onLogout, onO
         </button>
       </div>
 
-      {/* DRAWER KERANJANG UNTUK MOBILE */}
       {isMobileCartOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end">
           <div
@@ -510,28 +499,22 @@ export const PosLayout: React.FC<PosLayoutProps> = ({ currentUser, onLogout, onO
         </div>
       )}
 
-      {/* Pop-up Struk Transaksi Sukses */}
       {lastTransaction && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl">
             <CheckCircle size={52} className="text-emerald-500 mx-auto mb-3" />
             <h3 className="text-xl font-bold text-slate-800 mb-1">Transaksi Berhasil!</h3>
             <p className="text-slate-500 text-xs mb-1 font-mono">
-              No. Struk: {lastTransaction.invoiceNo}
+              ID: {lastTransaction.id}
             </p>
             <div className="bg-slate-50 p-4 rounded-xl mb-5 text-left text-xs space-y-1.5 border border-slate-200">
               <p className="text-slate-800 font-bold">
-                Pelanggan: {lastTransaction.customerName || 'Pelanggan'} ({lastTransaction.orderType === 'DINE_IN' ? 'Dine In' : 'Take Away'})
+                Pelanggan: {lastTransaction.customerName || 'Pelanggan'}
               </p>
               <p className="text-slate-800 font-bold">
                 Total: Rp {Number(lastTransaction.totalAmount).toLocaleString('id-ID')}
               </p>
               <p className="text-slate-600 font-semibold">Metode: {lastTransaction.paymentMethod}</p>
-              {lastTransaction.paymentMethod === 'CASH' && (
-                <p className="text-emerald-600 font-extrabold">
-                  Kembalian: Rp {Number(lastTransaction.change).toLocaleString('id-ID')}
-                </p>
-              )}
             </div>
             <button
               onClick={() => setLastTransaction(null)}
