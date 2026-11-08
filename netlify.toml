@@ -2,5 +2,9 @@
   command = "prisma generate && vite build"
   publish = "dist"
 
+[functions]
+  node_bundler = "esbuild"
+  included_files = ["node_modules/.prisma/client/*"]
+
 [build.environment]
   SECRETS_SCAN_OMIT_KEYS = "DIRECT_URL, DATABASE_URL"
