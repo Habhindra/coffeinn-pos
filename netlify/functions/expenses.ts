@@ -12,7 +12,6 @@ export const handler: Handler = async (event) => {
   const method = event.httpMethod;
 
   try {
-    // GET: Fetch Expenses
     if (method === 'GET') {
       const expenses = await prisma.expense.findMany({
         orderBy: { date: 'desc' },
@@ -20,12 +19,14 @@ export const handler: Handler = async (event) => {
 
       return {
         statusCode: 200,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*' 
+        },
         body: JSON.stringify(expenses),
       };
     }
 
-    // POST: Add New Expense
     if (method === 'POST') {
       const body = JSON.parse(event.body || '{}');
       const { title, category, amount, notes, date } = body;
@@ -38,24 +39,35 @@ export const handler: Handler = async (event) => {
         };
       }
 
+      // Validasi Parsing Date agar tidak Invalid Date di Prisma
+      let parsedDate = new Date();
+      if (date) {
+        const d = new Date(date);
+        if (!isNaN(d.getTime())) {
+          parsedDate = d;
+        }
+      }
+
       const expense = await prisma.expense.create({
         data: {
-          title,
-          category: category || 'Bahan Baku',
+          title: String(title),
+          category: category ? String(category) : 'Bahan Baku',
           amount: parseFloat(amount),
-          notes: notes || null,
-          date: date ? new Date(date) : new Date(),
+          notes: notes ? String(notes) : null,
+          date: parsedDate,
         },
       });
 
       return {
         statusCode: 201,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*' 
+        },
         body: JSON.stringify({ success: true, expense }),
       };
     }
 
-    // DELETE: Remove Expense
     if (method === 'DELETE') {
       const body = JSON.parse(event.body || '{}');
       const { id } = body;
@@ -73,7 +85,7 @@ export const handler: Handler = async (event) => {
       return {
         statusCode: 200,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ success: true, message: 'Pengeluaran berhasil dihapus' }),
+        body: JSON.stringify({ success: true }),
       };
     }
 
@@ -89,4 +101,4 @@ export const handler: Handler = async (event) => {
       }),
     };
   }
-};  
+};

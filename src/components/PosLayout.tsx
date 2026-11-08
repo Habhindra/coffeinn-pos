@@ -42,21 +42,36 @@ export const PosLayout: React.FC<PosLayoutProps> = ({ currentUser, onLogout, onO
   const [lastTransaction, setLastTransaction] = useState<any>(null);
   
   // State drawer keranjang mobile
-  const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
-
   useEffect(() => {
     fetchMenuData();
   }, []);
 
   const fetchMenuData = async () => {
     try {
-      const res = await fetch('/.netlify/functions/transactions');
+      // PERBAIKAN: Ubah endpoint ke menu-management
+      const res = await fetch('/.netlify/functions/menu-management');
       const data = await res.json();
-      if (res.ok) setCategories(data);
+      if (res.ok) {
+        // Backend menu-management mengembalikan { menus: [...], categories: [...] }
+        // Kita ubah formatnya agar sesuai dengan state categories & menus di komponen ini:
+        if (data.categories && data.menus) {
+          // Gabungkan menus ke dalam masing-masing category agar struktur categories.flatMap berfungsi
+          const categoriesWithMenus = data.categories.map((cat: any) => ({
+            ...cat,
+            menus: data.menus.filter((m: any) => m.categoryId === cat.id),
+          }));
+          setCategories(categoriesWithMenus);
+        } else if (Array.isArray(data)) {
+          setCategories(data);
+        }
+      }
     } catch (err) {
       console.error('Gagal mengambil data menu:', err);
     }
   };
+    } catch (err) {
+      console.error('Gagal mengambil data menu:', err);
+    }
 
   const formatNumberWithDots = (val: string | number) => {
     const numStr = val.toString().replace(/\D/g, '');
