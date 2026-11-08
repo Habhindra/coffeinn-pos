@@ -20,9 +20,18 @@ interface MenuManagementProps {
   onBackToDashboard: () => void;
 }
 
+// Fallback 5 Kategori Standar Coffeinn
+const DEFAULT_CATEGORIES: Category[] = [
+  { id: 'cat-coffee', name: 'Coffee' },
+  { id: 'cat-non-coffee', name: 'Non-Coffee' },
+  { id: 'cat-seasonal', name: 'Seasonal Menu' },
+  { id: 'cat-1liter', name: '1 Liter' },
+  { id: 'cat-snack', name: 'Snack' },
+];
+
 export const MenuManagement: React.FC<MenuManagementProps> = ({ onBackToDashboard }) => {
   const [menus, setMenus] = useState<Menu[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES);
   const [loading, setLoading] = useState(true);
 
   // State Modal Form
@@ -34,7 +43,7 @@ export const MenuManagement: React.FC<MenuManagementProps> = ({ onBackToDashboar
     name: '',
     price: '',
     hpp: '',
-    categoryId: '',
+    categoryId: DEFAULT_CATEGORIES[0].id,
   });
 
   useEffect(() => {
@@ -44,19 +53,17 @@ export const MenuManagement: React.FC<MenuManagementProps> = ({ onBackToDashboar
   const fetchMenus = async () => {
     try {
       const res = await fetch('/.netlify/functions/menu-management');
-      const data = await res.json();
       if (res.ok) {
+        const data = await res.json();
         setMenus(data.menus || []);
         if (data.categories && data.categories.length > 0) {
           setCategories(data.categories);
-          if (!formData.categoryId) {
-            setFormData((prev) => ({ ...prev, categoryId: data.categories[0].id }));
-          }
+          setFormData((prev) => ({ ...prev, categoryId: data.categories[0].id }));
         }
       }
     } catch (err) {
       console.error('Gagal mengambil data menu:', err);
-    } finally {
+    } font-sans finally {
       setLoading(false);
     }
   };
@@ -67,7 +74,7 @@ export const MenuManagement: React.FC<MenuManagementProps> = ({ onBackToDashboar
       name: '',
       price: '',
       hpp: '',
-      categoryId: categories[0]?.id || '',
+      categoryId: categories[0]?.id || DEFAULT_CATEGORIES[0].id,
     });
     setIsModalOpen(true);
   };
@@ -244,14 +251,14 @@ export const MenuManagement: React.FC<MenuManagementProps> = ({ onBackToDashboar
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: Dirty Latte"
+                  placeholder="Contoh: Sea Salt Latte"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-semibold focus:outline-none focus:border-sky-500"
                 />
               </div>
 
-              {/* Opsi Dropdown Kategori */}
+              {/* Select Kategori dengan Guaranteed Fallback Options */}
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1">Kategori</label>
                 <select
