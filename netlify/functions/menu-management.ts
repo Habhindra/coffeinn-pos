@@ -3,27 +3,12 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-const REQUIRED_CATEGORIES = [
-  'Coffee',
-  'Non-Coffee',
-  'Seasonal Menu',
-  '1 Liter',
-  'Snack',
-];
-
 export const handler: Handler = async (event) => {
   const method = event.httpMethod;
 
   try {
-    // 1. GET: Ambil Semua Menu & Kategori (Pastikan 5 Kategori Tersedia)
+    // 1. GET: Ambil Semua Menu & Kategori
     if (method === 'GET') {
-      for (const catName of REQUIRED_CATEGORIES) {
-        const exists = await prisma.category.findFirst({ where: { name: catName } });
-        if (!exists) {
-          await prisma.category.create({ data: { name: catName } });
-        }
-      }
-
       const categories = await prisma.category.findMany({ orderBy: { name: 'asc' } });
       const menus = await prisma.menu.findMany({
         include: { category: true },
@@ -37,9 +22,9 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // 2. POST: Tambah Menu Baru (Auto-resolve Category ID)
+    // 2. POST: Tambah Menu Baru (Auto-find or Create Category Name)
     if (method === 'POST') {
-      const { name, price, hpp, categoryId, imageUrl } = JSON.parse(event.body || '{}');
+      const { name, price, hpp, categoryName, imageUrl } = JSON.parse(event.body || '{}');
 
       if (!name || !price) {
         return {
@@ -49,17 +34,17 @@ export const handler: Handler = async (event) => {
         };
       }
 
-      // Validasi/Cari Kategori yang Valid di Database Supabase
-      let targetCategory = await prisma.category.findUnique({ where: { id: categoryId } });
-      
-      if (!targetCategory) {
-        // Fallback: Gunakan kategori 'Coffee' default jika ID tidak ditemukan
-        targetCategory = await prisma.category.findFirst({ where: { name: 'Coffee' } });
-        
-        // Jika masih kosong, buat kategori 'Coffee'
-        if (!targetCategory) {
-          targetCategory = await prisma.category.create({ data: { name: 'Coffee' } });
-        }
+      const targetCategoryName = categoryName || 'Coffee';
+
+      // Find or Create Category
+      let category = await prisma.category.findFirst({
+        where: { name: targetCategoryName },
+      });
+
+      if (!category) {
+        category = await prisma.category.create({
+          data: { name: targetCategoryName },
+        });
       }
 
       const newMenu = await prisma.menu.create({
@@ -67,7 +52,7 @@ export const handler: Handler = async (event) => {
           name,
           price: parseFloat(price),
           hpp: parseFloat(hpp || 0),
-          categoryId: targetCategory.id,
+          categoryId: category.id,
           imageUrl: imageUrl || null,
         },
       });
@@ -81,7 +66,7 @@ export const handler: Handler = async (event) => {
 
     // 3. PUT: Edit Menu & HPP
     if (method === 'PUT') {
-      const { id, name, price, hpp, categoryId, imageUrl } = JSON.parse(event.body || '{}');
+      const { id, name, price, hpp, categoryName, imageUrl } = JSON.parse(event.body || '{}');
 
       if (!id) {
         return {
@@ -91,12 +76,15 @@ export const handler: Handler = async (event) => {
         };
       }
 
-      let targetCategoryId = categoryId;
-      const validCategory = await prisma.category.findUnique({ where: { id: categoryId } });
-      
-      if (!validCategory) {
-        const defaultCategory = await prisma.category.findFirst({ where: { name: 'Coffee' } });
-        if (defaultCategory) targetCategoryId = defaultCategory.id;
+      const targetCategoryName = categoryName || 'Coffee';
+      let category = await prisma.category.findFirst({
+        where: { name: targetCategoryName },
+      });
+
+      if (!category) {
+        category = await prisma.category.create({
+          data: { name: targetCategoryName },
+        });
       }
 
       const updatedMenu = await prisma.menu.update({
@@ -105,7 +93,7 @@ export const handler: Handler = async (event) => {
           name,
           price: parseFloat(price),
           hpp: parseFloat(hpp || 0),
-          categoryId: targetCategoryId,
+          categoryId: category.id,
           imageUrl: imageUrl || null,
         },
       });

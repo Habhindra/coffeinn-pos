@@ -20,30 +20,28 @@ interface MenuManagementProps {
   onBackToDashboard: () => void;
 }
 
-// Fallback 5 Kategori Standar Coffeinn
-const DEFAULT_CATEGORIES: Category[] = [
-  { id: 'cat-coffee', name: 'Coffee' },
-  { id: 'cat-non-coffee', name: 'Non-Coffee' },
-  { id: 'cat-seasonal', name: 'Seasonal Menu' },
-  { id: 'cat-1liter', name: '1 Liter' },
-  { id: 'cat-snack', name: 'Snack' },
+const CATEGORY_OPTIONS = [
+  'Coffee',
+  'Non-Coffee',
+  'Seasonal Menu',
+  '1 Liter',
+  'Snack',
 ];
 
 export const MenuManagement: React.FC<MenuManagementProps> = ({ onBackToDashboard }) => {
   const [menus, setMenus] = useState<Menu[]>([]);
-  const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES);
   const [loading, setLoading] = useState(true);
 
   // State Modal Form
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMenu, setEditingMenu] = useState<Menu | null>(null);
 
-  // Input Form
+  // Input Form (Menggunakan Nama Kategori Langsung)
   const [formData, setFormData] = useState({
     name: '',
     price: '',
     hpp: '',
-    categoryId: DEFAULT_CATEGORIES[0].id,
+    categoryName: 'Coffee',
   });
 
   useEffect(() => {
@@ -56,10 +54,6 @@ export const MenuManagement: React.FC<MenuManagementProps> = ({ onBackToDashboar
       if (res.ok) {
         const data = await res.json();
         setMenus(data.menus || []);
-        if (data.categories && data.categories.length > 0) {
-          setCategories(data.categories);
-          setFormData((prev) => ({ ...prev, categoryId: data.categories[0].id }));
-        }
       }
     } catch (err) {
       console.error('Gagal mengambil data menu:', err);
@@ -74,7 +68,7 @@ export const MenuManagement: React.FC<MenuManagementProps> = ({ onBackToDashboar
       name: '',
       price: '',
       hpp: '',
-      categoryId: categories[0]?.id || DEFAULT_CATEGORIES[0].id,
+      categoryName: 'Coffee',
     });
     setIsModalOpen(true);
   };
@@ -85,7 +79,7 @@ export const MenuManagement: React.FC<MenuManagementProps> = ({ onBackToDashboar
       name: menu.name,
       price: menu.price.toString(),
       hpp: menu.hpp ? menu.hpp.toString() : '0',
-      categoryId: menu.categoryId,
+      categoryName: menu.category?.name || 'Coffee',
     });
     setIsModalOpen(true);
   };
@@ -102,12 +96,13 @@ export const MenuManagement: React.FC<MenuManagementProps> = ({ onBackToDashboar
         body: JSON.stringify(payload),
       });
 
-      if (res.ok) {
+      const responseData = await res.json();
+
+      if (res.ok && responseData.success) {
         setIsModalOpen(false);
         fetchMenus();
       } else {
-        const errorData = await res.json();
-        alert(errorData.message || 'Gagal menyimpan menu');
+        alert(responseData.message || 'Gagal menyimpan menu');
       }
     } catch (err) {
       alert('Terjadi kesalahan koneksi saat menyimpan menu');
@@ -258,17 +253,17 @@ export const MenuManagement: React.FC<MenuManagementProps> = ({ onBackToDashboar
                 />
               </div>
 
-              {/* Select Kategori dengan Guaranteed Fallback Options */}
+              {/* Select Kategori 5 Opsi */}
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1">Kategori</label>
                 <select
-                  value={formData.categoryId}
-                  onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                  value={formData.categoryName}
+                  onChange={(e) => setFormData({ ...formData, categoryName: e.target.value })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-semibold focus:outline-none focus:border-sky-500 cursor-pointer"
                 >
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
+                  {CATEGORY_OPTIONS.map((catName) => (
+                    <option key={catName} value={catName}>
+                      {catName}
                     </option>
                   ))}
                 </select>
