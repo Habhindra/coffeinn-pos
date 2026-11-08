@@ -1,13 +1,22 @@
 import { Handler } from '@netlify/functions';
 import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+// Reuse PrismaClient instance untuk serverless runtime
+declare global {
+  var prisma: PrismaClient | undefined;
+}
+
+const prisma = global.prisma || new PrismaClient({
+  log: ['error'],
+});
+
+if (process.env.NODE_ENV !== 'production') global.prisma = prisma;
 
 export const handler: Handler = async (event) => {
   const method = event.httpMethod;
 
   try {
-    // 1. GET: Ambil Semua Menu & Kategori
+    // 1. GET: Fetch Menus & Categories
     if (method === 'GET') {
       const categories = await prisma.category.findMany({ orderBy: { name: 'asc' } });
       const menus = await prisma.menu.findMany({
@@ -22,9 +31,10 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // 2. POST: Tambah Menu Baru (Auto-find or Create Category Name)
+    // 2. POST: Add New Menu
     if (method === 'POST') {
-      const { name, price, hpp, categoryName, imageUrl } = JSON.parse(event.body || '{}');
+      const body = JSON.parse(event.body || '{}');
+      const { name, price, hpp, categoryName, imageUrl } = body;
 
       if (!name || !price) {
         return {
@@ -34,16 +44,16 @@ export const handler: Handler = async (event) => {
         };
       }
 
-      const targetCategoryName = categoryName || 'Coffee';
+      const targetCatName = categoryName || 'Coffee';
 
-      // Find or Create Category
+      // Find or create Category by Name
       let category = await prisma.category.findFirst({
-        where: { name: targetCategoryName },
+        where: { name: targetCatName },
       });
 
       if (!category) {
         category = await prisma.category.create({
-          data: { name: targetCategoryName },
+          data: { name: targetCatName },
         });
       }
 
@@ -64,9 +74,10 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // 3. PUT: Edit Menu & HPP
+    // 3. PUT: Edit Menu
     if (method === 'PUT') {
-      const { id, name, price, hpp, categoryName, imageUrl } = JSON.parse(event.body || '{}');
+      const body = JSON.parse(event.body || '{}');
+      const { id, name, price, hpp, categoryName, imageUrl } = body;
 
       if (!id) {
         return {
@@ -76,14 +87,14 @@ export const handler: Handler = async (event) => {
         };
       }
 
-      const targetCategoryName = categoryName || 'Coffee';
+      const targetCatName = categoryName || 'Coffee';
       let category = await prisma.category.findFirst({
-        where: { name: targetCategoryName },
+        where: { name: targetCatName },
       });
 
       if (!category) {
         category = await prisma.category.create({
-          data: { name: targetCategoryName },
+          data: { name: targetCatName },
         });
       }
 
@@ -105,9 +116,10 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // 4. DELETE: Hapus Menu
+    // 4. DELETE: Remove Menu
     if (method === 'DELETE') {
-      const { id } = JSON.parse(event.body || '{}');
+      const body = JSON.parse(event.body || '{}');
+      const { id } = body;
 
       if (!id) {
         return {
@@ -128,11 +140,14 @@ export const handler: Handler = async (event) => {
 
     return { statusCode: 405, body: 'Method Not Allowed' };
   } catch (error: any) {
-    console.error('Error Menu Management:', error);
+    console.error('Error Menu Management Function:', error);
     return {
       statusCode: 500,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: 'Gagal menyimpan menu ke Supabase', error: error.message }),
+      body: JSON.stringify({
+        message: 'Gagal menyimpan menu ke Supabase',
+        error: error.message || String(error),
+      }),
     };
   }
 };
