@@ -39,12 +39,23 @@ export const handler: Handler = async (event) => {
         };
       }
 
-      // Validasi Parsing Date agar tidak Invalid Date di Prisma
+      // Parser Tanggal Aman (Mendukung DD/MM/YYYY maupun YYYY-MM-DD)
       let parsedDate = new Date();
       if (date) {
-        const d = new Date(date);
-        if (!isNaN(d.getTime())) {
-          parsedDate = d;
+        if (typeof date === 'string' && date.includes('/')) {
+          const parts = date.split('/');
+          if (parts.length === 3) {
+            // Ubah dari DD/MM/YYYY ke YYYY-MM-DD
+            parsedDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+          }
+        } else {
+          const d = new Date(date);
+          if (!isNaN(d.getTime())) {
+            parsedDate = d;
+          }
+        }
+        if (isNaN(parsedDate.getTime())) {
+          parsedDate = new Date();
         }
       }
 
