@@ -1,5 +1,5 @@
 [build]
-  command = "prisma generate && vite build"
+  command = "npx prisma generate && vite build"
   publish = "dist"
 
 [functions]
