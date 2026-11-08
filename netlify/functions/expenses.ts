@@ -1,56 +1,34 @@
 import { Handler } from '@netlify/functions';
 import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+declare global {
+  var prisma: PrismaClient | undefined;
+}
+
+const prisma = global.prisma || new PrismaClient({ log: ['error'] });
+if (process.env.NODE_ENV !== 'production') global.prisma = prisma;
 
 export const handler: Handler = async (event) => {
   const method = event.httpMethod;
 
   try {
-    // 1. GET: Ambil Daftar Pengeluaran Berdasarkan Filter Bulan & Tahun
+    // GET: Fetch Expenses
     if (method === 'GET') {
-      const params = event.queryStringParameters || {};
-      const now = new Date();
-
-      let selectedMonth = params.month ? parseInt(params.month, 10) - 1 : now.getMonth();
-      let selectedYear = params.year ? parseInt(params.year, 10) : now.getFullYear();
-
-      if (isNaN(selectedMonth) || selectedMonth < 0 || selectedMonth > 11) {
-        selectedMonth = now.getMonth();
-      }
-      if (isNaN(selectedYear) || selectedYear < 2000) {
-        selectedYear = now.getFullYear();
-      }
-
-      const startOfMonth = new Date(selectedYear, selectedMonth, 1);
-      const endOfMonth = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59, 999);
-
       const expenses = await prisma.expense.findMany({
-        where: {
-          date: {
-            gte: startOfMonth,
-            lte: endOfMonth,
-          },
-        },
         orderBy: { date: 'desc' },
       });
-
-      const totalExpense = expenses.reduce((sum, item) => sum + Number(item.amount || 0), 0);
 
       return {
         statusCode: 200,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          expenses,
-          totalExpense,
-          selectedPeriod: { month: selectedMonth + 1, year: selectedYear },
-        }),
+        body: JSON.stringify(expenses),
       };
     }
 
-    // 2. POST: Catat Pengeluaran Baru
+    // POST: Add New Expense
     if (method === 'POST') {
-      const { title, category, amount, notes, date } = JSON.parse(event.body || '{}');
+      const body = JSON.parse(event.body || '{}');
+      const { title, category, amount, notes, date } = body;
 
       if (!title || !amount) {
         return {
@@ -60,12 +38,12 @@ export const handler: Handler = async (event) => {
         };
       }
 
-      const newExpense = await prisma.expense.create({
+      const expense = await prisma.expense.create({
         data: {
           title,
           category: category || 'Bahan Baku',
           amount: parseFloat(amount),
-          notes: notes || '',
+          notes: notes || null,
           date: date ? new Date(date) : new Date(),
         },
       });
@@ -73,13 +51,14 @@ export const handler: Handler = async (event) => {
       return {
         statusCode: 201,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ success: true, expense: newExpense }),
+        body: JSON.stringify({ success: true, expense }),
       };
     }
 
-    // 3. DELETE: Hapus Catatan Pengeluaran
+    // DELETE: Remove Expense
     if (method === 'DELETE') {
-      const { id } = JSON.parse(event.body || '{}');
+      const body = JSON.parse(event.body || '{}');
+      const { id } = body;
 
       if (!id) {
         return {
@@ -100,11 +79,14 @@ export const handler: Handler = async (event) => {
 
     return { statusCode: 405, body: 'Method Not Allowed' };
   } catch (error: any) {
-    console.error('Error Expense Management:', error);
+    console.error('Error Expenses Function:', error);
     return {
       statusCode: 500,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: 'Terjadi kesalahan server', error: error.message }),
+      body: JSON.stringify({
+        message: 'Gagal mencatat pengeluaran',
+        error: error.message || String(error),
+      }),
     };
   }
 };

@@ -1,66 +1,62 @@
 import { Handler } from '@netlify/functions';
 import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+declare global {
+  var prisma: PrismaClient | undefined;
+}
+
+const prisma = global.prisma || new PrismaClient({ log: ['error'] });
+if (process.env.NODE_ENV !== 'production') global.prisma = prisma;
 
 export const handler: Handler = async (event) => {
-  // 1. GET: Ambil Daftar Menu & Kategori
-  if (event.httpMethod === 'GET') {
-    try {
-      const categories = await prisma.category.findMany({
+  const method = event.httpMethod;
+
+  try {
+    // GET: Fetch Transactions
+    if (method === 'GET') {
+      const transactions = await prisma.transaction.findMany({
         include: {
-          menus: true,
+          items: {
+            include: { menu: true },
+          },
         },
+        orderBy: { createdAt: 'desc' },
       });
+
       return {
         statusCode: 200,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(categories),
-      };
-    } catch (error: any) {
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ message: 'Gagal mengambil data menu', error: error.message }),
+        body: JSON.stringify(transactions),
       };
     }
-  }
 
-  // 2. POST: Simpan Transaksi Kasir
-  if (event.httpMethod === 'POST') {
-    try {
-      const { userId, items, paymentMethod, totalAmount, cashPaid, change } = JSON.parse(
-        event.body || '{}'
-      );
+    // POST: Create New Transaction
+    if (method === 'POST') {
+      const body = JSON.parse(event.body || '{}');
+      const { orderType, paymentMethod, customerName, items, totalAmount, cashPaid, changeAmount } = body;
 
-      if (!items || items.length === 0) {
+      if (!items || !items.length) {
         return {
           statusCode: 400,
-          body: JSON.stringify({ message: 'Keranjang transaksi tidak boleh kosong' }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: 'Keranjang belanja tidak boleh kosong' }),
         };
       }
 
-      // Buat nomor struk otomatis: TRX-YYYYMMDD-XXXX
-      const today = new Date();
-      const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
-      const count = await prisma.transaction.count();
-      const invoiceNo = `TRX-${dateStr}-${(count + 1).toString().padStart(4, '0')}`;
-
-      // Simpan transaksi & item transaksi ke Supabase
       const transaction = await prisma.transaction.create({
         data: {
-          invoiceNo,
-          userId: userId || 'cashier-id-1',
-          paymentMethod,
+          orderType: orderType || 'DINE_IN',
+          paymentMethod: paymentMethod || 'CASH',
+          customerName: customerName || null,
           totalAmount: parseFloat(totalAmount),
-          cashPaid: parseFloat(cashPaid || totalAmount),
-          change: parseFloat(change || 0),
+          cashPaid: cashPaid ? parseFloat(cashPaid) : null,
+          changeAmount: changeAmount ? parseFloat(changeAmount) : null,
           items: {
             create: items.map((item: any) => ({
-              menuId: item.id,
-              quantity: Number(item.quantity),
+              menuId: item.menuId || item.id,
+              quantity: parseInt(item.quantity),
               price: parseFloat(item.price),
               hpp: parseFloat(item.hpp || 0),
-              subtotal: parseFloat(item.price) * Number(item.quantity),
             })),
           },
         },
@@ -70,18 +66,22 @@ export const handler: Handler = async (event) => {
       });
 
       return {
-        statusCode: 200,
+        statusCode: 201,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ success: true, transaction }),
       };
-    } catch (error: any) {
-      console.error('Error Transaction:', error);
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ message: 'Gagal memproses transaksi', error: error.message }),
-      };
     }
-  }
 
-  return { statusCode: 405, body: 'Method Not Allowed' };
+    return { statusCode: 405, body: 'Method Not Allowed' };
+  } catch (error: any) {
+    console.error('Error Transactions Function:', error);
+    return {
+      statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: 'Gagal memproses transaksi',
+        error: error.message || String(error),
+      }),
+    };
+  }
 };
