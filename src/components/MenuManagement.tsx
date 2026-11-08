@@ -63,7 +63,7 @@ export const MenuManagement: React.FC<MenuManagementProps> = ({ onBackToDashboar
       }
     } catch (err) {
       console.error('Gagal mengambil data menu:', err);
-    } font-sans finally {
+    } finally {
       setLoading(false);
     }
   };
