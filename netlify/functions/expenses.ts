@@ -29,7 +29,7 @@ export const handler: Handler = async (event) => {
 
     if (method === 'POST') {
       const body = JSON.parse(event.body || '{}');
-      const { title, category, amount, notes, date } = body;
+      const { title, category, amount, date } = body;
 
       if (!title || !amount) {
         return {
@@ -39,13 +39,12 @@ export const handler: Handler = async (event) => {
         };
       }
 
-      // Parser Tanggal Aman (Mendukung DD/MM/YYYY maupun YYYY-MM-DD)
+      // Parser Tanggal yang Aman (Mendukung DD/MM/YYYY maupun YYYY-MM-DD)
       let parsedDate = new Date();
       if (date) {
         if (typeof date === 'string' && date.includes('/')) {
           const parts = date.split('/');
           if (parts.length === 3) {
-            // Ubah dari DD/MM/YYYY ke YYYY-MM-DD
             parsedDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
           }
         } else {
@@ -64,7 +63,6 @@ export const handler: Handler = async (event) => {
           title: String(title),
           category: category ? String(category) : 'Bahan Baku',
           amount: parseFloat(amount),
-          notes: notes ? String(notes) : null,
           date: parsedDate,
         },
       });
